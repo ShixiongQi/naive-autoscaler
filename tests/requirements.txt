@@ -1,0 +1,6 @@
+-r ../app/requirements.txt
+mock
+pytest
+pytest-watch
+pytest-cov
+codecov
