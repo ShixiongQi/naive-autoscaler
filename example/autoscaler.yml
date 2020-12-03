@@ -1,34 +1,34 @@
-poll_interval_seconds: 10
+poll_interval_seconds: 2
 autoscale_rules:
   - service_name: bouncer
-    network_name: network_1
+    network_name: net0
     scale_min: 1
     scale_max: 3
     scale_step: 1
     scale_up_threshold: 10
     scale_down_threshold: 5
-    stablization_window: 300
-  - service_name: bouncer
-    network_name: network_2
-    scale_min: 1
-    scale_max: 3
-    scale_step: 1
-    scale_up_threshold: 10
-    scale_down_threshold: 5
-    stablization_window: 300
-  - service_name: bouncer
-    network_name: network_3
-    scale_min: 1
-    scale_max: 3
-    scale_step: 1
-    scale_up_threshold: 10
-    scale_down_threshold: 5
-    stablization_window: 300
-  - service_name: divider
-    vpc_name: vpc_0
-    scale_min: 1
-    scale_max: 3
-    scale_step: 1
-    scale_up_threshold: 10
-    scale_down_threshold: 5
-    stablization_window: 300
+    stablization_window: 60
+  # - service_name: bouncer
+  #   network_name: network_2
+  #   scale_min: 1
+  #   scale_max: 3
+  #   scale_step: 1
+  #   scale_up_threshold: 10
+  #   scale_down_threshold: 5
+  #   stablization_window: 60
+  # - service_name: bouncer
+  #   network_name: network_3
+  #   scale_min: 1
+  #   scale_max: 3
+  #   scale_step: 1
+  #   scale_up_threshold: 10
+  #   scale_down_threshold: 5
+  #   stablization_window: 60
+  # - service_name: divider
+  #   vpc_name: vpc_0
+  #   scale_min: 1
+  #   scale_max: 3
+  #   scale_step: 1
+  #   scale_up_threshold: 10
+  #   scale_down_threshold: 5
+  #   stablization_window: 60

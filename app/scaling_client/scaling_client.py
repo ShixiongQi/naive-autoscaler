@@ -5,31 +5,37 @@ from kubernetes.client.rest import ApiException
 import os
 import pprint
 
-
+# ScalingHandler
 class ScalingClient(object):
     def __init__(self):
         self.DOMAIN = "mizar.com"
-        self.create_scaling_decision_crd()
-
         global config
         if 'KUBERNETES_PORT' in os.environ:
             config.load_incluster_config()
         else:
             config.load_kube_config()
-        config = client.Configuration()
-        config.assert_hostname = False
-        self.api_client = client.api_client.ApiClient(configuration=config)
-
+        configuration = client.Configuration()
+        configuration.assert_hostname = False
+        self.api_client = client.api_client.ApiClient(configuration=configuration)
+        self.create_scaling_decision_crd() # create CRD of scaling decision
 
     def create_scaling_decision_crd(self):
-        definition = 'scaling_decision_crd.yml'
+        definition = '../../example/scaling_decision_crd.yml'
         v1 = client.ApiextensionsV1beta1Api()
         current_crds = [x['spec']['names']['kind'].lower() for x in v1.list_custom_resource_definition().to_dict()['items']]
-        if 'Decision' not in current_crds:
+        # print(current_crds)
+        if 'decision' not in current_crds:
             print("Creating Decision definition")
             with open(definition) as data:
-                body = yaml.load(data)
-            v1.create_custom_resource_definition(body)
+                body = yaml.load(data, Loader=yaml.Loader)
+                # print(yaml.dump(body))
+            try:
+                v1.create_custom_resource_definition(body)
+            except ValueError as exception: # Check: https://github.com/kubernetes-client/python/issues/1098
+                if str(exception) == 'Invalid value for `conditions`, must not be `None`':
+                    print("Skipping invalid \'conditions\' value...")
+                else:
+                    raise exception
 
     def get_bouncer_IP_from_network(self):
         ipList = []
@@ -164,17 +170,18 @@ class ScalingClient(object):
         }
 
         obj = {'apiVersion': 'mizar.com/v1',
-            'metadata': {'name': service_name + '@' + network_name},
+            'metadata': {'name': service_name + '-' + network_name},
             'kind': 'Decision',
-            # Arbitrary contents
             'spec' : scaling_decision_data
             }
-        # To confirm with Hong
+
         # Generate CRD and send
         res = self.find_decision(obj['metadata']['name'], namespace='default')
+        print("res: {}".format(res))
         if res == 0:
             # No decision, create new
             self.create_decision(body=obj, namespace='default')
+
         else:
             # Existing Decision, update
             self.update_decision(body=obj, namespace='default')
@@ -184,6 +191,4 @@ class ScalingClient(object):
     def scale_service(self, network_name, service_name, replica_count):
         # Send Scaling Decision To Adaptor. Adaptor will handle the scaling 
         # of the Bouncer/Divider
-        self.SentDecisionToAdaptor(network_name=network_name, serviceName = service_name, replicas=replica_count)
-
-        # Which host to be placed?
+        self.SentDecisionToAdaptor(network_name=network_name, service_name=service_name, replica_count=replica_count)

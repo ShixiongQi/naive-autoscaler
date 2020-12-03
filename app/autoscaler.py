@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-
+import yaml
 logger = logging.getLogger(__name__)
 
 class Autoscaler(object):
@@ -12,8 +12,10 @@ class Autoscaler(object):
         self.metric_stores_map = {}
         self.datetime_module = datetime_module or datetime
         autoscale_rules = self.config['autoscale_rules']
+        # print(yaml.dump(autoscale_rules))
         for autoscale_rule in autoscale_rules:
-            network_name = autoscale_rule['network_name']   
+            # print(yaml.dump(autoscale_rule))
+            network_name = autoscale_rule['network_name']
             metric_store = self.metric_store_factory.get_metric_store(self.config) # Each network has its own metric store
             self.metric_stores_map[network_name] = metric_store
 
@@ -28,6 +30,7 @@ class Autoscaler(object):
             To get the IP of the all bouncers in the cluster
         '''
         [ipList, networkList, VPCList] = self.scaling_client.get_bouncer_IP_from_network()
+        # print("ipList: {}, netList: {}, VPCList: {}".format(ipList, networkList, VPCList))
         current_replica_count = 0
 
         autoscale_rules = self.config['autoscale_rules']
@@ -42,15 +45,12 @@ class Autoscaler(object):
             stablization_window_size = autoscale_rule['stablization_window']
             # Get the metric store by the metric store name
             metric_store = self.metric_stores_map[network_name]
+            # print("service_name: {}, network_name: {}, scale_min: {}".format(service_name,network_name,scale_min))
 
             # Get Bouncer replicas count in Current network
-            # current_replica_count = self.scaling_client.get_bouncer_replica_count(service_name=service_name, network_name = network_name)
-            Bouncer_IP_in_current_network_vpc = []
-            for x in range(0,len(ipList)):
-                if network_name == network_name:
-                    Bouncer_IP_in_current_network_vpc.append(ipList[x])
-                    current_replica_count = current_replica_count + 1
+            current_replica_count = len(ipList)
             logger.debug("Replica count for {} @ {}: {}".format(service_name, network_name, current_replica_count)) # "Replica count for bouncer in Network X in VPC X"
+            # print("Replica count for {} @ {}: {}".format(service_name, network_name, current_replica_count))
             '''
             Auto scaling algorithm with window --- simple threshold method
 
@@ -66,13 +66,14 @@ class Autoscaler(object):
             HPA: desiredReplicas = ceil[currentReplicas * ( currentMetricValue / desiredMetricValue )]
             '''
             # Get average metrics from the metrics store (per network) WITHIN a window size
-            metric_value = metric_store.get_metric_value(stablization_window_size, Bouncer_IP_in_current_network_vpc)
+            metric_value = metric_store.get_metric_value(stablization_window_size, ipList)
             logger.debug("Metric value for {} @ Network {}: {}".format(service_name, network_name, metric_value))
-
+            print("Metric value for {} @ Network {}: {}".format(service_name, network_name, metric_value))
             if metric_value > scale_up_threshold and (current_replica_count + scale_step) <= scale_max:
-                logger.info("Scaling up {} from {} to {} as metric value is {}".format(service_name, current_replica_count, current_replica_count + scale_step, metric_value))
+                # logger.info("Scaling up {} from {} to {} as metric value is {}".format(service_name, current_replica_count, current_replica_count + scale_step, metric_value))
+                print("Scaling up {} from {} to {} as metric value is {}".format(service_name, current_replica_count, current_replica_count + scale_step, metric_value))
                 self.scaling_client.scale_service(network_name=network_name, service_name=service_name, replica_count=current_replica_count + scale_step)
             if metric_value < scale_down_threshold and (current_replica_count - scale_step) >= scale_min:
-                logger.info("Scaling down {} from {} to {} as metric value is {}".format(service_name, current_replica_count, current_replica_count - scale_step, metric_value))
+                # logger.info("Scaling down {} from {} to {} as metric value is {}".format(service_name, current_replica_count, current_replica_count - scale_step, metric_value))
+                print("Scaling down {} from {} to {} as metric value is {}".format(service_name, current_replica_count, current_replica_count - scale_step, metric_value))
                 self.scaling_client.scale_service(network_name=network_name, service_name=service_name, replica_count=current_replica_count - scale_step)
-

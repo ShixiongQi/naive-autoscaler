@@ -24,9 +24,9 @@ if __name__ == "__main__":
 
     # Setup components
     with open(args.config_file) as config_file:
-        config = yaml.load(config_file)
+        config = yaml.load(config_file, Loader=yaml.Loader)
         logger.debug("Config %s", config)
-        metric_store_factory = MetricStoreFactory() # Setup MetricsStore
+        metric_store_factory = MetricStoreFactory() # Setup MetricsStore # TODO: need to be fixed
         scaling_client = ScalingClient() # Setup Scaling Client
         scheduler = BlockingScheduler(timezone=utc)
         autoscaler = Autoscaler(config, scaling_client, metric_store_factory, scheduler)

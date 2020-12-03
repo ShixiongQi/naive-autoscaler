@@ -6,7 +6,7 @@ class TestMetricStore(object):
         self.config = {
             "poll_interval_seconds": 10
         }
-        self.ipList = ["128.110.154.72"]
+        self.ipList = ["172.18.0.6"]
         # self.win_size = 300
         self.metric_store = MetricStore(self.config, self.ipList)
 
